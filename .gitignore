@@ -1,3 +1,13 @@
+# Environment variables / secrets
 .env
-.venv
+.env.*
+
+# Python virtual environment
+.venv/
+
+# Local source data
 data/
+
+# Python cache
+__pycache__/
+*.pyc
