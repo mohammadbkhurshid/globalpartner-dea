@@ -1,12 +1,108 @@
-import os
-import pandas as pd
+import sys
+from pyspark.sql import SparkSession
+
+# 1. Try to import Glue libraries (will only work inside AWS Glue)
+try:
+    from awsglue.context import GlueContext
+    from awsglue.utils import getResolvedOptions
+    from awsglue.job import Job
+    from pyspark.context import SparkContext
+    
+    # AWS Glue Initialization
+    args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+    sc = SparkContext()
+    glueContext = GlueContext(sc)
+    spark = glueContext.spark_session
+    job = Job(glueContext)
+    job.init(args['JOB_NAME'], args)
+    
+    # Path when running in AWS (S3 bucket)
+    file_path = "s3://your-bucket-name/data/order_item_options.csv"
+    is_glue = True
+
+# 2. Fallback to Local Spark (runs perfectly in your local VS Code)
+except ImportError:
+    # Local Initialization
+    spark = SparkSession.builder \
+        .appName("FileCheck") \
+        .master("local[*]") \
+        .getOrCreate()
+    
+    # Path when running on your local C drive
+    file_path = "../data/order_item_options.csv" 
+    is_glue = False
+
+# ==========================================
+# CORE LOGIC (This runs identical in BOTH places)
+# ==========================================
+df = spark.read.csv(file_path, header=True, inferSchema=True)
+df.show(5)
+
+# ==========================================
+# Clean up AWS Glue job at the end
+# ==========================================
+if is_glue:
+    job.commit()
+
+
+# # import pyspark as spark
+# from pyspark.sql import SparkSession
+# from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, LongType, DecimalType, BooleanType
+
+
+# # csv_file = "data/date_dim.csv"
+# spark = SparkSession.builder.appName("FileCheck").getOrCreate()
+
+# # # date_schema = StructType([
+# # #     StructField('date_key', StringType(), True),
+# # #     StructField('year', IntegerType(), True),
+# # #     StructField('month', IntegerType(), True),
+# # #     StructField('week', IntegerType(), True),
+# # #     StructField('day_of_week', StringType(), True),
+# # #     StructField('is_weekend', BooleanType(), True),
+# # #     StructField('is_holiday', BooleanType(), True),
+# # #     StructField('holiday_name', StringType(), True)])
+# # # date_dim = spark.read.format('csv')\
+# # #     .option('header', True)\
+# # #     .schema(date_schema)\
+# # #     .load(csv_file)
+# # # date_dim.show()
+# file_path = "../data/order_item_options.csv"    #"data/order_items.csv"   # Single file check
+
+# df = spark.read.csv(file_path, header=True, inferSchema=True)
+
+# df.show(5)
+
+# data\date_dim.csv
+# Rows: 365
+# Columns: 8
+# RangeIndex: 365 entries, 0 to 364
+# Data columns (total 8 columns):
+#  #   Column        Non-Null Count  Dtype
+# ---  ------        --------------  -----
+#  0   date_key      365 non-null    str  
+#  1   year          365 non-null    int64
+#  2   month         365 non-null    int64
+#  3   week          365 non-null    int64
+#  4   day_of_week   365 non-null    str  
+#  5   is_weekend    365 non-null    bool 
+#  6   is_holiday    365 non-null    bool 
+#  7   holiday_name  12 non-null     str  
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# import os
+# import pandas as pd
 
 # read files in the data folder and check if they are .csv files
-from pathlib import Path
+# from pathlib import Path
 
-file_path = "data/order_item_options.csv"    #"data/order_items.csv"   # Single file check
+# file_path = "../data/order_item_options.csv"    #"data/order_items.csv"   # Single file check
 
-df = pd.read_csv(file_path)
+# df = pd.read_csv(file_path)
+# print(df.head(2))
 
 # Check counts
 # print(f"Row count:  {df.shape[0]}")                                                         # 203519
@@ -29,7 +125,7 @@ df = pd.read_csv(file_path)
 # df_counts = df_counts[df_counts['record_count'] != 1]
 # print(df_counts.head())
 
-print(df['OPTION_PRICE'].max())
+# print(df['OPTION_PRICE'].max())
 
    
 #  5   OPTION_QUANTITY
