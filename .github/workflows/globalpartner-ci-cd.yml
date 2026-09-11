@@ -1,0 +1,52 @@
+name: GlobalPartner CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  validate:
+    name: CI - Validate Glue Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Validate Python syntax
+        run: |
+          python -m compileall -q scripts
+
+  deploy:
+    name: CD - Deploy Glue Scripts
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::632295790448:role/GlobalPartnerGlueScriptDeployment
+          aws-region: us-east-1
+
+      - name: Deploy Glue scripts to S3
+        run: |
+          aws s3 sync scripts/ s3://aws-glue-assets-632295790448-us-east-1/scripts/ \
+            --exclude "file_check.py" \
+            --exclude "spark_check.py" \
+            --exclude "Tables_check.sql"
